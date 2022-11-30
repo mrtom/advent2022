@@ -1,5 +1,7 @@
 import { readFileSync, existsSync, appendFile } from 'fs';
 import { config } from 'dotenv';
+import { dirname } from 'path';
+import caller from 'caller';
 config();
 
 type SolveArgs<T> = {
@@ -17,14 +19,17 @@ export async function solve<T = string[]>({
   const [solver, file] = part1Solved
     ? [part2, './input2.txt']
     : [part1, './input.txt'];
-  const input = parser(readFileSync(file, 'utf8'));
+
+  const dir = dirname(caller());
+  const fileName = `${dir}/${file}`;
+  const input = parser(readFileSync(fileName, 'utf8'));
   const answer = solver(input);
-  const solutions = readFileSync('./solutions.txt', 'utf8').split('\n');
+  const solutions = readFileSync(`${dir}/solutions.txt`, 'utf8').split('\n');
   if (solutions.includes(answer)) {
     console.log('Solution already attempted!');
     return;
   }
-  appendFile('./solutions.txt', `${answer}\n`, () => {});
+  appendFile(`${dir}/solutions.txt`, `${answer}\n`, () => {});
   const result = await fetch('https://adventofcode.com/2021/day/1/answer', {
     method: 'POST',
     headers: {
@@ -39,14 +44,4 @@ export async function solve<T = string[]>({
   } else {
     console.log('Correct answer!');
   }
-
-  // if (!part1Solved) {
-  //   const next = await fetch(`https://adventofcode.com/2021/day/${day}/input`, {
-  //     headers: {
-  //       cookie: `session=${process.env.SESSION}`,
-  //     },
-  //   })
-  //     .then((res) => res.text())
-  //     .then((text) => writeFileSync(`${folder}/input.txt`, text));
-  // }
 }

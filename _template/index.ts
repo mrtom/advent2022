@@ -1,11 +1,11 @@
 import { parseLines } from '../utils/parse';
 import { solve } from '../utils/solve';
 
-function part1(input: string[]) {
+function part1(_input: string[]) {
   return 'part1';
 }
 
-function part2(input: string[]) {
+function part2(_input: string[]) {
   return 'part2';
 }
 

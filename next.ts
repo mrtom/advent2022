@@ -1,4 +1,11 @@
-import { mkdirSync, readdirSync, writeFileSync, copyFile } from 'fs';
+import {
+  mkdirSync,
+  readdirSync,
+  writeFileSync,
+  copyFile,
+  existsSync,
+  rmSync,
+} from 'fs';
 import { config } from 'dotenv';
 config();
 
@@ -19,3 +26,8 @@ fetch(`https://adventofcode.com/2021/day/${day}/input`, {
 })
   .then((res) => res.text())
   .then((text) => writeFileSync(`${folder}/input.txt`, text));
+
+if (existsSync('./index.ts')) {
+  rmSync('./index.ts');
+}
+writeFileSync('./index.ts', `import './day${day}';`);

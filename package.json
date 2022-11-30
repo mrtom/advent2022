@@ -8,10 +8,12 @@
   "license": "UNLICENSED",
   "private": false,
   "scripts": {
-    "next": "ts-node ./next.ts"
+    "next": "ts-node ./next.ts",
+    "start": "ts-node ./index.ts"
   },
   "dependencies": {
     "@types/node": "18.0.0",
+    "caller": "^1.1.0",
     "dotenv": "^16.0.3",
     "hygen": "^6.2.11",
     "lodash": "^4.17.21",
@@ -19,6 +21,8 @@
     "typescript": "^4.9.3"
   },
   "devDependencies": {
+    "@types/caller": "^1.0.0",
+    "@types/lodash": "^4.14.190",
     "@types/node-fetch": "^2.6.2",
     "prettier": "^2.8.0"
   }
