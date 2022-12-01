@@ -5,8 +5,8 @@ import caller from 'caller';
 config();
 
 type SolveArgs<T> = {
-  part1: (input: T) => string;
-  part2: (input: T) => string;
+  part1: (input: T) => { toString: () => string } | undefined;
+  part2: (input: T) => { toString: () => string } | undefined;
   parser: (input: string) => T;
 };
 
@@ -15,22 +15,23 @@ export async function solve<T = string[]>({
   part2,
   parser,
 }: SolveArgs<T>) {
-  const part1Solved = existsSync('./input2.txt');
-  const [solver, file, solutionsFile] = part1Solved
-    ? [part2, './input2.txt', './solutions2.txt']
-    : [part1, './input.txt', './solutions.txt'];
-
   const dir = dirname(caller());
   const day = dir.replace(/.*day/, '');
+
+  const part1Solved = existsSync(`${dir}/input2.txt`);
+  const [solver, file, solutionsFile] = part1Solved
+    ? [part2, 'input2.txt', 'solutions2.txt']
+    : [part1, 'input.txt', 'solutions.txt'];
+
   const fileName = `${dir}/${file}`;
   const input = parser(readFileSync(fileName, 'utf8'));
-  const answer = solver(input);
+  const answer = solver(input)?.toString();
   const solutions = readFileSync(`${dir}/${solutionsFile}`, 'utf8').split('\n');
-  if (solutions.includes(answer)) {
+  if (solutions.includes(answer || '')) {
     console.log('Solution already attempted!');
     return;
   }
-  appendFile(`${dir}/solutions.txt`, `${answer}\n`, () => {});
+  appendFile(`${dir}/${solutionsFile}`, `${answer}\n`, () => {});
   const result = await fetch(
     `https://adventofcode.com/2022/day/${day}/answer`,
     {

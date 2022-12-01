@@ -1,3 +1,6 @@
-export function parseLines(input: string): string[] {
-  return input.split('\n');
+export function parseLines(
+  opts: { separator: string } = { separator: '\n' },
+): (input: string) => string[] {
+  const { separator } = opts;
+  return (input) => input.split(separator);
 }

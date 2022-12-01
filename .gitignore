@@ -102,3 +102,8 @@ dist
 
 # TernJS port file
 .tern-port
+
+input.txt
+input2.txt
+solutions.txt
+solutions2.txt
