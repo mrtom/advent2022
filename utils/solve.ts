@@ -32,7 +32,7 @@ export async function solve<T = string[]>({
   }
   appendFile(`${dir}/solutions.txt`, `${answer}\n`, () => {});
   const result = await fetch(
-    `https://adventofcode.com/2021/day/${day}/answer`,
+    `https://adventofcode.com/2022/day/${day}/answer`,
     {
       method: 'POST',
       headers: {
@@ -48,7 +48,7 @@ export async function solve<T = string[]>({
   } else {
     console.log('Correct answer!');
     writeFileSync(`${dir}/solutions2.txt`, '');
-    fetch(`https://adventofcode.com/2021/day/${day}/input`, {
+    fetch(`https://adventofcode.com/2022/day/${day}/input`, {
       headers: {
         cookie: `session=${process.env.SESSION}`,
       },

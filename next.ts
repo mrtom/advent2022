@@ -19,7 +19,7 @@ const folder = `day${day}`;
 mkdirSync(folder);
 copyFile('_template/index.ts', `${folder}/index.ts`, () => {});
 writeFileSync(`${folder}/solutions.txt`, '');
-fetch(`https://adventofcode.com/2021/day/${day}/input`, {
+fetch(`https://adventofcode.com/2022/day/${day}/input`, {
   headers: {
     cookie: `session=${process.env.SESSION}`,
   },
