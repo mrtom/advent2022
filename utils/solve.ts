@@ -8,12 +8,14 @@ type SolveArgs<T> = {
   part1: (input: T) => { toString: () => string } | undefined;
   part2: (input: T) => { toString: () => string } | undefined;
   parser: (input: string) => T;
+  dryRun: boolean;
 };
 
 export async function solve<T = string[]>({
   part1,
   part2,
   parser,
+  dryRun = true,
 }: SolveArgs<T>) {
   const dir = dirname(caller());
   const day = dir.replace(/.*day/, '');
@@ -26,6 +28,13 @@ export async function solve<T = string[]>({
   const fileName = `${dir}/${file}`;
   const input = parser(readFileSync(fileName, 'utf8'));
   const answer = solver(input)?.toString();
+
+  console.info(answer);
+
+  if (dryRun) {
+    return;
+  }
+
   const solutions = readFileSync(`${dir}/${solutionsFile}`, 'utf8').split('\n');
   if (solutions.includes(answer || '')) {
     console.log('Solution already attempted!');
