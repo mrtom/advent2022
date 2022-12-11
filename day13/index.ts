@@ -106,4 +106,4 @@ function part2(_input: Pair[]) {
   return answer;
 }
 
-solve({ part1, part2, parser: parse, dryRun: false });
+solve({ part1, part2, parser: parse });

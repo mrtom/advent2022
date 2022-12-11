@@ -221,4 +221,4 @@ function part2(moves: Move[]) {
   return visited.size;
 }
 
-solve({ part1, part2, parser: parser, dryRun: false });
+solve({ part1, part2, parser: parser });

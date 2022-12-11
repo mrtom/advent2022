@@ -4,28 +4,28 @@ import { sortBy, sum } from 'lodash';
 import { parseLines } from '../utils/parse';
 import { solve } from '../utils/solve';
 
-type File  = {
-  name: string,
-  size: number,
-}
+type File = {
+  name: string;
+  size: number;
+};
 
 type Directory = {
-  name: string,
-  parent: Directory | null,
-  children: Directory[],
-  files: File[],
-  size: number
-  totalSize: number
-}
+  name: string;
+  parent: Directory | null;
+  children: Directory[];
+  files: File[];
+  size: number;
+  totalSize: number;
+};
 
 type RootDirectory = Directory;
 
 const createFile = (name: string, size: number): File => {
   return {
     name,
-    size
+    size,
   };
-}
+};
 
 const createDirectory = (name: string, parent: Directory | null): Directory => {
   return {
@@ -35,20 +35,20 @@ const createDirectory = (name: string, parent: Directory | null): Directory => {
     files: [],
     size: 0,
     totalSize: 0,
-  }
-}
+  };
+};
 
 const isCommand = (line: string): boolean => {
   return line.startsWith('$');
-}
+};
 
 const isCdCommand = (line: string): boolean => {
   return line.startsWith('$ cd');
-}
+};
 
 const isListCommand = (line: string): boolean => {
   return line.startsWith('$ ls');
-}
+};
 
 const calculateTotalSizes = (root: Directory) => {
   // DFS to find root nodes and calculate from the bottom up
@@ -56,10 +56,13 @@ const calculateTotalSizes = (root: Directory) => {
     calculateTotalSizes(root.children[i]!);
   }
 
-  root.totalSize = sum(root.children.map(dir => dir.totalSize)) + root.size;
-}
+  root.totalSize = sum(root.children.map((dir) => dir.totalSize)) + root.size;
+};
 
-const findSmallDirectories = (root: Directory, smallDirs: Directory[]): Directory[] => {
+const findSmallDirectories = (
+  root: Directory,
+  smallDirs: Directory[],
+): Directory[] => {
   // DFS again
   for (let i = 0; i < root.children.length; i++) {
     findSmallDirectories(root.children[i]!, smallDirs);
@@ -70,9 +73,12 @@ const findSmallDirectories = (root: Directory, smallDirs: Directory[]): Director
   }
 
   return smallDirs;
-}
+};
 
-const findAllDirectories = (root: Directory, allDirs: Directory[]): Directory[] => {
+const findAllDirectories = (
+  root: Directory,
+  allDirs: Directory[],
+): Directory[] => {
   // DFS again
   for (let i = 0; i < root.children.length; i++) {
     findAllDirectories(root.children[i]!, allDirs);
@@ -81,7 +87,7 @@ const findAllDirectories = (root: Directory, allDirs: Directory[]): Directory[] 
   allDirs.push(root);
 
   return allDirs;
-}
+};
 
 const parseInput = (_input: string): RootDirectory => {
   const input = parseLines()(_input);
@@ -127,7 +133,9 @@ const parseInput = (_input: string): RootDirectory => {
         assert(currentDirectory.parent !== null);
         currentDirectory = currentDirectory.parent!;
       } else {
-        const idx = currentDirectory.children.findIndex(dir => dir.name === dirName);
+        const idx = currentDirectory.children.findIndex(
+          (dir) => dir.name === dirName,
+        );
         currentDirectory = currentDirectory.children[idx]!;
       }
     }
@@ -136,11 +144,11 @@ const parseInput = (_input: string): RootDirectory => {
   calculateTotalSizes(rootDirectory);
 
   return rootDirectory;
-}
+};
 
 function part1(root: RootDirectory) {
   const smallDirs = findSmallDirectories(root, []);
-  return sum(smallDirs.map(dir => dir.totalSize));
+  return sum(smallDirs.map((dir) => dir.totalSize));
 }
 
 function part2(root: RootDirectory) {
@@ -151,9 +159,11 @@ function part2(root: RootDirectory) {
   const savingsNeeded = spaceNeeded - (totalSize - sizeUsed);
   const allDirs = findAllDirectories(root, []);
 
-  const dirToDelete = sortBy(allDirs, dir => dir.totalSize).filter(dir => dir.totalSize >= savingsNeeded)[0];
+  const dirToDelete = sortBy(allDirs, (dir) => dir.totalSize).filter(
+    (dir) => dir.totalSize >= savingsNeeded,
+  )[0];
 
   return dirToDelete?.totalSize;
 }
 
-solve({ part1, part2, parser: parseInput, dryRun: false });
+solve({ part1, part2, parser: parseInput });

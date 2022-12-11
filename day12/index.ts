@@ -114,4 +114,4 @@ function part2(map: Map) {
   return answer + 1;
 }
 
-solve({ part1, part2, parser: parseInput, dryRun: false });
+solve({ part1, part2, parser: parseInput });

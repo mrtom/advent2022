@@ -10,27 +10,30 @@ type OutcomeScore = 0 | 3 | 6;
 type Game = {
   them: 'A' | 'B' | 'C';
   us: 'X' | 'Y' | 'Z';
-}
+};
 
 type Result = Game & {
   outcomeScore: OutcomeScore;
   shapeScore: ShapeScore;
   gameScore: number;
-}
+};
 
 function createGame(input: string): Game {
   const _input = input.split(' ');
   return {
     them: _input[0] as 'A' | 'B' | 'C',
     us: _input[1] as 'X' | 'Y' | 'Z',
-  }
+  };
 }
 
 function decodeThem(game: Game): RPS {
-  switch(game.them) {
-    case 'A': return 'R';
-    case 'B': return 'P';
-    case 'C': return 'S';
+  switch (game.them) {
+    case 'A':
+      return 'R';
+    case 'B':
+      return 'P';
+    case 'C':
+      return 'S';
   }
 }
 
@@ -44,9 +47,12 @@ function decodeThem(game: Game): RPS {
 
 function preDecodeFprPart2(game: Game): WLD {
   switch (game.us) {
-    case 'X': return 'L';
-    case 'Y': return 'D';
-    case 'Z': return 'W';
+    case 'X':
+      return 'L';
+    case 'Y':
+      return 'D';
+    case 'Z':
+      return 'W';
   }
 }
 
@@ -54,11 +60,11 @@ function decodeUs(game: Game): RPS {
   const them = decodeThem(game);
   const result = preDecodeFprPart2(game);
 
-  switch(result) {
+  switch (result) {
     case 'D':
       return them;
     case 'L':
-      switch(them) {
+      switch (them) {
         case 'R':
           return 'S';
         case 'P':
@@ -115,22 +121,22 @@ function calculateResult(game: Game): Result {
     us: game.us,
     outcomeScore: getOutcomeScore(game),
     shapeScore: getShapeScore(decodeUs(game)),
-    gameScore: getOutcomeScore(game) + getShapeScore(decodeUs(game))
-  }
+    gameScore: getOutcomeScore(game) + getShapeScore(decodeUs(game)),
+  };
 }
 
 function part1(_input: string[]) {
-  const games = _input.map(i => createGame(i));
-  const results = games.map(i => calculateResult(i));
-  const scores = results.map(result => result.gameScore);
+  const games = _input.map((i) => createGame(i));
+  const results = games.map((i) => calculateResult(i));
+  const scores = results.map((result) => result.gameScore);
   return sum(scores);
 }
 
 function part2(_input: string[]) {
-  const games = _input.map(i => createGame(i));
-  const results = games.map(i => calculateResult(i));
-  const scores = results.map(result => result.gameScore);
+  const games = _input.map((i) => createGame(i));
+  const results = games.map((i) => calculateResult(i));
+  const scores = results.map((result) => result.gameScore);
   return sum(scores);
 }
 
-solve({ part1, part2, parser: parseLines(), dryRun: false });
+solve({ part1, part2, parser: parseLines() });

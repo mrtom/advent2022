@@ -4,56 +4,49 @@ import { dirname } from 'path';
 import caller from 'caller';
 config();
 
-type SolveArgs<T> = {
-  part1: (input: T) => { toString: () => string } | undefined;
-  part2: (input: T) => { toString: () => string } | undefined;
-  test1?: string;
-  test2?: string;
+type SolveArgs<T, TResult1, TResult2> = {
+  part1: (input: T) => TResult1;
+  part2: (input: T) => TResult2;
+  test1?: TResult1;
+  test2?: TResult2;
   parser: (input: string) => T;
-  dryRun: boolean;
 };
 
-export async function solve<T = string[]>({
-  part1,
-  test1,
-  part2,
-  test2,
-  parser,
-  dryRun = true,
-}: SolveArgs<T>) {
+function read(fileName: string): string {
+  return readFileSync(fileName, 'utf8')
+    .replace(/\n$/, '')
+    .replace('\r\n', '\n');
+}
+
+export async function solve<
+  T = string[],
+  TResult1 = { toString: () => string } | undefined,
+  TResult2 = TResult1,
+>({ part1, test1, part2, test2, parser }: SolveArgs<T, TResult1, TResult2>) {
   const dir = dirname(caller());
   const day = dir.replace(/.*day/, '');
 
   const part1Solved = existsSync(`${dir}/input2.txt`);
   const part = part1Solved ? 2 : 1;
-
   const [solver, file, solutionsFile, test, testFile] = part1Solved
     ? [part2, 'input2.txt', 'solutions2.txt', test2, 'test2.txt']
     : [part1, 'input.txt', 'solutions.txt', test1, 'test.txt'];
-
   if (test) {
-    const testInput = parser(readFileSync(`${dir}/${testFile}`, 'utf8'));
+    const testInput = parser(read(`${dir}/${testFile}`));
     const testOutput = solver(testInput)?.toString();
-    if (testOutput !== test) {
+    if (testOutput !== test.toString()) {
       console.error(
-        `Test failed for day ${day} part ${part}: expected ${test}, got ${testOutput}`,
+        `Test failed for day ${day} part ${part}:\nExpected\n${test}\nGot\n${testOutput}\n`,
       );
       process.exit(1);
     }
-    console.log(`Test passed for day ${day}`);
+    console.log(`Test passed for day ${day} part ${part}`);
   }
-
   const fileName = `${dir}/${file}`;
-  const input = parser(readFileSync(fileName, 'utf8'));
+  const input = parser(read(fileName));
   const answer = solver(input)?.toString();
-
   console.log(`Attempting ${answer}`);
-
-  if (dryRun) {
-    return;
-  }
-
-  const solutions = readFileSync(`${dir}/${solutionsFile}`, 'utf8').split('\n');
+  const solutions = read(`${dir}/${solutionsFile}`).split('\n');
   if (solutions.includes(answer || '')) {
     console.log('Solution already attempted!');
     return;
@@ -75,6 +68,7 @@ export async function solve<T = string[]>({
     console.log('Wrong answer!');
   } else {
     console.log('Correct answer!');
+    if (part === 2) return;
     writeFileSync(`${dir}/solutions2.txt`, '');
     fetch(`https://adventofcode.com/2022/day/${day}/input`, {
       headers: {

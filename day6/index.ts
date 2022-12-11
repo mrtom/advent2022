@@ -48,4 +48,4 @@ function part2(input: string) {
   throw new Error('You made a mistake');
 }
 
-solve({ part1, part2, parser: identity, dryRun: false });
+solve({ part1, part2, parser: identity });

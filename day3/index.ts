@@ -101,4 +101,4 @@ function part2(_input: string[]) {
   return answer;
 }
 
-solve({ part1, part2, parser: parseLines(), dryRun: false });
+solve({ part1, part2, parser: parseLines() });

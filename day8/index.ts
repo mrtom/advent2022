@@ -120,4 +120,4 @@ function part2(grid: TreeGrid) {
   return answer;
 }
 
-solve({ part1, part2, parser: parseMap, dryRun: false });
+solve({ part1, part2, parser: parseMap });

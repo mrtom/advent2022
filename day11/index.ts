@@ -147,4 +147,4 @@ function part2(monkeys: Monkey[]) {
   return answer;
 }
 
-solve({ part1, part2, parser: parseGameStart, dryRun: false });
+solve({ part1, part2, parser: parseGameStart });
