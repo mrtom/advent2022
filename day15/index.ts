@@ -1,16 +1,14 @@
-import { strict as assert } from 'node:assert';
-
 import { solve } from '../utils/solve';
-
-function mod(n: number): number {
-  if (n < 0) return n * -1;
-  return n;
-}
 
 type Position = {
   x: number;
   y: number;
 };
+
+type Range = {
+  min: number;
+  max: number;
+}
 
 type Sensor = {
   location: Position;
@@ -18,16 +16,13 @@ type Sensor = {
   beaconDistance: number;
 };
 
-type Cell = 'B' | 'S' | '.' | '#';
-
-type Grid = Cell[][];
-
 type State = {
-  grid: Grid;
   sensors: Sensor[];
   maxBeaconDistance: number;
-  xOffset: number;
-  yOffset: number;
+  minX: number;
+  maxX: number;
+  minY: number;
+  maxY: number;
 };
 
 const regex =
@@ -46,7 +41,7 @@ function parser(input: string): State {
     const yLoc = Number(match?.groups?.yLoc);
     const beaconX = Number(match?.groups?.beaconX);
     const beaconY = Number(match?.groups?.beaconY);
-    const beaconDistance = mod(xLoc - beaconX) + mod(yLoc - beaconY);
+    const beaconDistance = Math.abs(xLoc - beaconX) + Math.abs(yLoc - beaconY);
 
     if (
       xLoc === Number.NaN ||
@@ -80,84 +75,100 @@ function parser(input: string): State {
     };
   });
 
-  const grid: Grid = Array(maxY + mod(minY) + maxBeaconDistance + 1)
-    .fill('.')
-    .map((_) => Array(maxX + mod(minX) + maxBeaconDistance + 1).fill('.'));
-
-  for (let i = 0; i < sensors.length; i++) {
-    const sensor = sensors[i]!;
-    grid[sensor.location.y - minY]![sensor.location.x - minX] = 'B';
-    grid[sensor.closestBeacon.y - minY]![sensor.closestBeacon.x - minX] = 'S';
-  }
+  minX = minX - maxBeaconDistance;
+  maxX = maxX + maxBeaconDistance;
+  minY = minY - maxBeaconDistance;
+  maxY = maxY + maxBeaconDistance;
 
   return {
-    grid,
     sensors,
-    xOffset: minX,
-    yOffset: minY,
     maxBeaconDistance,
+    minX,
+    maxX,
+    minY,
+    maxY,
   };
 }
 
-function getValidPositionsWithinDistanceFromPosition(
-  location: Position,
-  distance: number,
-  state: State,
-): Position[] {
-  const positions: Position[] = [];
+function unavailableCellsForRow(row: number, state: State): [Set<number>, Set<number>] {
+  const { sensors } = state;
+  const closeCells = new Set<number>();
+  const beaconsAndSensorsInRow = new Set<number>();
 
-  const { x, y } = location;
+  for (const sensor of sensors) {
+    if (sensor.location.y === row) {
+      beaconsAndSensorsInRow.add(sensor.location.x);
+    }
+    if (sensor.closestBeacon.y === row) {
+      beaconsAndSensorsInRow.add(sensor.closestBeacon.x);
+    }
+  }
 
-  for (let i = x - distance; i <= x + distance; i++) {
-    for (let j = y - distance; j <= y + distance; j++) {
-      if (mod(x - i) + mod(y - j) >= distance) {
-        continue;
-      }
-
-      const row = state.grid[j - state.yOffset];
-      if (row !== undefined) {
-        const cell = row[i - state.xOffset];
-        if (cell !== undefined && cell === '.') {
-          positions.push({ x: i, y: j });
-        }
+  for (let i = state.minX; i <= state.maxX; i++) {
+    for (const sensor of sensors) {
+      const distance = Math.abs(sensor.location.x - i) + Math.abs(sensor.location.y - row);
+      if (distance <= sensor.beaconDistance && !beaconsAndSensorsInRow.has(i)) {
+        closeCells.add(i);
       }
     }
   }
 
-  return positions;
+  return [closeCells, beaconsAndSensorsInRow];
 }
 
-function printGrid({ grid, yOffset }: State) {
-  for (let j = 0; j < grid.length; j++) {
-    console.log(`${j + yOffset}: ${grid[j]!.join('')}`);
+function unavaialbleRangesForRow(row: number, sensors: Sensor[]): Range[] {
+  const min = 0;
+  const max = sensors.length < 20 ? 20 : 4000000;
+
+  const ranges = [] as Range[];
+
+  for (const sensor of sensors) {
+    const verticalDistance = Math.abs(sensor.location.y - row);
+    const distanceRemaining = sensor.beaconDistance - verticalDistance;
+    if (distanceRemaining >= 0) {
+      ranges.push({
+        min: Math.max(min, sensor.location.x - distanceRemaining),
+        max: Math.min(max, sensor.location.x + distanceRemaining),
+      });
+    }
   }
+
+  return ranges.sort((a: Range, b: Range) => {
+    if (a.min === b.min) return a.max < b.max ? -1 : 1;
+    return a.min - b.min;
+  });
+}
+
+function calculateTuningFrequency(x: number, y: number): number {
+  return x * 4000000 + y;
 }
 
 function part1(state: State) {
-  const { sensors } = state;
-  for (let i = 6; i < sensors.length; i++) {
-    const sensor = sensors[i]!;
-    const positions = getValidPositionsWithinDistanceFromPosition(
-      sensor.location,
-      sensor.beaconDistance,
-      state,
-    );
+  const row = state.sensors.length < 20 ? 10 : 2000000;
+  const [closeCells, _] = unavailableCellsForRow(row, state);
+  return closeCells.size;
+}
 
-    for (let j = 0; j < positions.length; j++) {
-      const position = positions[j]!;
-      state.grid[position.y - state.yOffset]![position.x - state.xOffset] = '#';
+function part2({ sensors }: State) {
+  const min = 0;
+  const max = sensors.length < 20 ? 20 : 4000000;
+
+  for (let j = min; j < max; j++) {
+    const ranges = unavaialbleRangesForRow(j, sensors);
+    let current = 0;
+    for (const range of ranges) {
+      if (range.min > current) {
+        return calculateTuningFrequency(current + 1, j);
+      } else {
+        current = Math.max(current, range.max);
+      }
     }
-
-    printGrid(state);
+    if (current < max) {
+      return calculateTuningFrequency(max, j);
+    }
   }
 
-  const answer = state.grid[10]!.filter((c) => c === '.').length;
-
-  return answer;
+  throw new Error(`Failed to find solution :(`);
 }
 
-function part2({ grid, maxSensorDistance }: State) {
-  return 0;
-}
-
-solve({ part1, test1: 26, part2, test2: 26, parser: parser });
+solve({ part1, test1: 26, part2, test2: 56000011, parser: parser });
