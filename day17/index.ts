@@ -1,4 +1,4 @@
-import { cloneDeep, isEqual, max, min, reverse } from 'lodash';
+import { cloneDeep, max, min, reverse } from 'lodash';
 
 import { indicesMatching } from '../utils/arrayUtils';
 import { parseChars } from '../utils/parse';
@@ -109,46 +109,54 @@ function print(grid: Grid, yOffset: number, movingRock: Rock) {
   console.log('\n');
 }
 
-function part1(jets: Jet[]) {
+function findHeightAfter(cycles: number, _jets: Jet[], heights: number[]): number {
   const grid: Grid = Array(7).fill('.').map(_ => Array(7).fill('.'));
+  const jets = cloneDeep(_jets);
   let rockNumber = 0;
 
-  while (rockNumber < 2022) {
+  while (rockNumber < cycles) {
     const rock = rocks[rockNumber % rocks.length]!;
     dropRock(cloneDeep(rock), grid, jets);
+    heights.push(highestRock(grid) + 1);
     rockNumber++;
   }
 
-  const answer = highestRock(grid) + 1;
+  return highestRock(grid) + 1;
+}
+
+function part1(jets: Jet[]) {
+  const answer = findHeightAfter(2022, jets, []);
   return answer;
 }
 
 function part2(jets: Jet[]) {
-  const grid: Grid = Array(7).fill('.').map(_ => Array(7).fill('.'));
+  const endAt = 1000000000000;
+  const start = 5000;
+  const heights: number[] = [];
 
-  let rockNumber = 0;
-  const state = {
-    grid,
-    heightOffset: 0,
-    jets,
-  }
-  while (rockNumber < 5000) {
-    const rock = rocks[rockNumber % rocks.length]!;
-    dropRock(cloneDeep(rock), state);
-    rockNumber++;
-  }
+  findHeightAfter(20000, jets, heights);
 
-  const first10Rows = grid.slice(-16, -6);
+  let cycleLength = -1;
+  let cycleHeight = -1;
+  for (let i = 100; i < 2000; i++) {
+    const heightAtStart = heights[start]!;
+    const first = heights[start + i]!;
+    const second = heights[start + (i * 2)]!;
+    const third = heights[start + (i * 3)]!;
 
-  for (let i = 1; i < grid.length - 10; i++) {
-    const chunk = grid.slice(1, 10);
-    if (isEqual(first10Rows, chunk)) {
-      // Pattern repeats after i times
-      return i;
+    if (first - heightAtStart === second - first && third - second === second - first) {
+      cycleLength = i;
+      cycleHeight = first - heightAtStart;
+      break;
     }
   }
 
-  return 0;
+  const numCycles = Math.floor((endAt - start) / cycleLength);
+  const remainder = (endAt - start) % cycleLength;
+  const prefixHeight = heights[start + remainder]!;
+  const totalSize = prefixHeight + numCycles * cycleHeight;
+
+  return totalSize - 1;
 }
 
 solve({ part1, test1: 3068, part2, test2: 1514285714288, parser: parser });
