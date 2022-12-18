@@ -5,6 +5,13 @@ export function parseLines(
   return (input) => input.split(separator);
 }
 
+export function parseChars(
+  opts: { separator: string } = { separator: '' },
+): (input: string) => string[] {
+  const { separator } = opts;
+  return (input) => input.split(separator);
+}
+
 type GridParserOptions<T> = {
   separator?: string;
   rowSeparator?: string;
