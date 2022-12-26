@@ -70,13 +70,17 @@ function encodeRobotsForMinute(
   return `${minute},oreBots:${oreRobots},clayRobots:${clayRobots},obsRobots:${obsRobots},geoRobots:${geoRobots}`;
 }
 
-function potentialMax(geo: number, minute: number): number {
+function potentialMax(geo: number, minute: number, time: number): number {
   // Potential score is current score + triangle number for remaining minutes
-  const minutesLeft = 25 - minute;
+  const minutesLeft = time + 1 - minute;
   return geo + (minutesLeft * (minutesLeft + 1)) / 2;
 }
 
-function traverseGraph(initialState: State, blueprint: Blueprint): number {
+function traverseGraph(
+  initialState: State,
+  blueprint: Blueprint,
+  time: number,
+): number {
   let max = 0;
   const maxGeodesPerMinute = new Map<number, number>();
   const resourcesByRobotsForMinute = new Map<string, ResourceCounts[]>();
@@ -96,7 +100,7 @@ function traverseGraph(initialState: State, blueprint: Blueprint): number {
       geo,
     } = nextState;
 
-    if (minute === 24) {
+    if (minute === time) {
       max = Math.max(max, geo);
       continue;
     }
@@ -104,7 +108,7 @@ function traverseGraph(initialState: State, blueprint: Blueprint): number {
     // Return early where possible
 
     // If max score on this branch can't beat the max, return
-    if (potentialMax(geo, minute) < max) {
+    if (potentialMax(geo, minute, time) < max) {
       continue;
     }
 
@@ -262,7 +266,7 @@ function traverseGraph(initialState: State, blueprint: Blueprint): number {
   return max;
 }
 
-function calcMaxGeodesFor(blueprint: Blueprint): Blueprint {
+function calcMaxGeodesFor(blueprint: Blueprint, time: number): Blueprint {
   const numGeodes = traverseGraph(
     {
       minute: 0,
@@ -276,6 +280,7 @@ function calcMaxGeodesFor(blueprint: Blueprint): Blueprint {
       geo: 0,
     },
     blueprint,
+    time,
   );
 
   blueprint.numGeodes = numGeodes;
@@ -284,15 +289,21 @@ function calcMaxGeodesFor(blueprint: Blueprint): Blueprint {
 
 function part1(blueprints: Blueprint[]) {
   const answer = blueprints
-    .map((bp) => calcMaxGeodesFor(bp))
+    .map((bp) => calcMaxGeodesFor(bp, 24))
     .map((bp) => bp.numGeodes * bp.idx)
     .reduce((acc, bp) => acc + bp, 0);
 
   return answer;
 }
 
-function part2(blueprints: Blueprint[]) {
-  return 0;
+function part2(_blueprints: Blueprint[]) {
+  const blueprints = _blueprints.splice(0, 3);
+
+  const answer = blueprints
+    .map((bp) => calcMaxGeodesFor(bp, 32))
+    .reduce((acc, bp) => acc * bp.numGeodes, 1);
+
+  return answer;
 }
 
-solve({ part1, test1: 33, part2, test2: 33, parser });
+solve({ part1, test1: 33, part2, test2: 3472, parser });
