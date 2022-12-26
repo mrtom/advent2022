@@ -1,5 +1,3 @@
-import { max } from 'lodash';
-
 import { parseLines } from '../utils/parse';
 import { solve } from '../utils/solve';
 
@@ -24,15 +22,12 @@ type State = {
   geo: number;
 };
 
-type RobotCounts = {
-  oreRobots: number;
-  clayRobots: number;
-  obsRobots: number;
-  geoRobots: number;
+type ResourceCounts = {
+  ore: number;
+  clay: number;
+  obs: number;
+  geo: number;
 };
-
-const maxGeodesPerMinute = new Map<number, number>();
-const maxRobotsPerMinute = new Map<number, RobotCounts>();
 
 const regex = /(\d)+/g;
 function parser(_input: string): Blueprint[] {
@@ -65,6 +60,16 @@ function parser(_input: string): Blueprint[] {
   return parseLines()(_input).map(bpParser);
 }
 
+function encodeRobotsForMinute(
+  minute: number,
+  oreRobots: number,
+  clayRobots: number,
+  obsRobots: number,
+  geoRobots: number,
+): string {
+  return `${minute},oreBots:${oreRobots},clayRobots:${clayRobots},obsRobots:${obsRobots},geoRobots:${geoRobots}`;
+}
+
 function potentialMax(geo: number, minute: number): number {
   // Potential score is current score + triangle number for remaining minutes
   const minutesLeft = 25 - minute;
@@ -73,6 +78,9 @@ function potentialMax(geo: number, minute: number): number {
 
 function traverseGraph(initialState: State, blueprint: Blueprint): number {
   let max = 0;
+  const maxGeodesPerMinute = new Map<number, number>();
+  const resourcesByRobotsForMinute = new Map<string, ResourceCounts[]>();
+
   const queue: State[] = [initialState];
   while (queue.length > 0) {
     const nextState = queue.shift()!;
@@ -88,16 +96,7 @@ function traverseGraph(initialState: State, blueprint: Blueprint): number {
       geo,
     } = nextState;
 
-    const maxGeodesForMinute = maxGeodesPerMinute.get(minute) ?? 0;
-    if (geo > maxGeodesForMinute) {
-      maxGeodesPerMinute.set(minute, geo);
-    }
-
-    if (geo < maxGeodesForMinute) {
-      continue;
-    }
-
-    if (minute === 25) {
+    if (minute === 24) {
       max = Math.max(max, geo);
       continue;
     }
@@ -109,35 +108,42 @@ function traverseGraph(initialState: State, blueprint: Blueprint): number {
       continue;
     }
 
-    // If we've seen more robots at this minute in anothoer branch
-    // Bow out
-    const robotsCountForMinute = maxRobotsPerMinute.get(minute);
-    if (robotsCountForMinute === undefined) {
-      maxRobotsPerMinute.set(minute, {
-        oreRobots,
-        clayRobots,
-        obsRobots,
-        geoRobots,
-      });
+    // If we've seen more resources at this minute in anothoer branch
+    // with the same number of robots, decide not to bother
+    const key = encodeRobotsForMinute(
+      minute,
+      oreRobots,
+      clayRobots,
+      obsRobots,
+      geoRobots,
+    );
+    const resourceCountsForRobots = resourcesByRobotsForMinute.get(key);
+    if (resourceCountsForRobots === undefined) {
+      resourcesByRobotsForMinute.set(key, [
+        {
+          ore,
+          clay,
+          obs,
+          geo,
+        },
+      ]);
     } else {
       if (
-        robotsCountForMinute.oreRobots > oreRobots &&
-        robotsCountForMinute.clayRobots > clayRobots &&
-        robotsCountForMinute.obsRobots > obsRobots &&
-        robotsCountForMinute.geoRobots > geoRobots
+        resourceCountsForRobots.some(
+          (resourceCount) =>
+            ore <= resourceCount.ore &&
+            clay <= resourceCount.clay &&
+            obs <= resourceCount.obs &&
+            geo <= resourceCount.geo,
+        )
       ) {
         continue;
-      } else if (
-        robotsCountForMinute.oreRobots < oreRobots &&
-        robotsCountForMinute.clayRobots < clayRobots &&
-        robotsCountForMinute.obsRobots < obsRobots &&
-        robotsCountForMinute.geoRobots < geoRobots
-      ) {
-        maxRobotsPerMinute.set(minute, {
-          oreRobots,
-          clayRobots,
-          obsRobots,
-          geoRobots,
+      } else {
+        resourceCountsForRobots.push({
+          ore,
+          clay,
+          obs,
+          geo,
         });
       }
     }
@@ -148,7 +154,7 @@ function traverseGraph(initialState: State, blueprint: Blueprint): number {
       Math.max(
         blueprint.oreRobotCost,
         blueprint.clayRobotCost,
-        blueprint.obsRobotCost.clay,
+        blueprint.obsRobotCost.ore,
         blueprint.geodeRobotCost.ore,
       )
     ) {
@@ -159,22 +165,31 @@ function traverseGraph(initialState: State, blueprint: Blueprint): number {
     if (clayRobots > blueprint.obsRobotCost.clay) continue;
     if (obsRobots > blueprint.geodeRobotCost.obs) continue;
 
+    // If we've had more geodes before than we have now, bail
+    const maxGeodesForMinute = maxGeodesPerMinute.get(minute) ?? 0;
+    const newGeosCount = geo + geoRobots;
+    if (newGeosCount > maxGeodesForMinute) {
+      maxGeodesPerMinute.set(minute, geo);
+    } else if (newGeosCount < maxGeodesForMinute) {
+      continue;
+    }
+
     // Let's get building
 
     // Geode cracking robots
-    const geoCrackingOre = Math.floor(ore / blueprint.geodeRobotCost.ore);
-    const geoCrackingObs = Math.floor(obs / blueprint.geodeRobotCost.obs);
-    const geoRobotsBuilt = Math.min(geoCrackingOre, geoCrackingObs);
-    if (geoRobotsBuilt > 0) {
+    if (
+      ore >= blueprint.geodeRobotCost.ore &&
+      obs >= blueprint.geodeRobotCost.obs
+    ) {
       queue.push({
         minute: minute + 1,
-        ore: ore - blueprint.geodeRobotCost.ore * geoRobotsBuilt + oreRobots,
+        ore: ore - blueprint.geodeRobotCost.ore + oreRobots,
         clay: clay + clayRobots,
-        obs: obs - blueprint.geodeRobotCost.obs * geoRobotsBuilt + obsRobots,
+        obs: obs - blueprint.geodeRobotCost.obs + obsRobots,
         oreRobots,
         clayRobots,
         obsRobots,
-        geoRobots: geoRobots + geoRobotsBuilt,
+        geoRobots: geoRobots + 1,
         geo: geo + geoRobots,
       });
 
@@ -183,32 +198,31 @@ function traverseGraph(initialState: State, blueprint: Blueprint): number {
     }
 
     // Obs collecting robots
-    const obsRobotOre = Math.floor(ore / blueprint.obsRobotCost.ore);
-    const obsRobotClay = Math.floor(clay / blueprint.obsRobotCost.clay);
-    const obsRobotsBuilt = Math.min(obsRobotOre, obsRobotClay);
-    if (obsRobotsBuilt > 0) {
+    if (
+      ore >= blueprint.obsRobotCost.ore &&
+      clay >= blueprint.obsRobotCost.clay
+    ) {
       queue.push({
         minute: minute + 1,
-        ore: ore - blueprint.obsRobotCost.ore * obsRobotsBuilt + oreRobots,
-        clay: clay - blueprint.clayRobotCost * obsRobotsBuilt + clayRobots,
+        ore: ore - blueprint.obsRobotCost.ore + oreRobots,
+        clay: clay - blueprint.obsRobotCost.clay + clayRobots,
         obs: obs + obsRobots,
         oreRobots,
         clayRobots,
-        obsRobots,
+        obsRobots: obsRobots + 1,
         geoRobots,
         geo: geo + geoRobots,
       });
     }
 
     // Ore collecting robots
-    const oreRobotsBuilt = Math.floor(ore / blueprint.oreRobotCost);
-    if (oreRobotsBuilt > 0) {
+    if (ore >= blueprint.oreRobotCost) {
       queue.push({
         minute: minute + 1,
-        ore: ore - blueprint.oreRobotCost * obsRobotsBuilt + oreRobots,
+        ore: ore - blueprint.oreRobotCost + oreRobots,
         clay: clay + clayRobots,
         obs: obs + obsRobots,
-        oreRobots: oreRobots + oreRobotsBuilt,
+        oreRobots: oreRobots + 1,
         clayRobots,
         obsRobots,
         geoRobots,
@@ -217,15 +231,14 @@ function traverseGraph(initialState: State, blueprint: Blueprint): number {
     }
 
     // Then build Clay collecting robots
-    const clayRobotsBuilt = Math.floor(ore / blueprint.clayRobotCost);
-    if (clayRobotsBuilt > 0) {
+    if (ore >= blueprint.clayRobotCost) {
       queue.push({
         minute: minute + 1,
-        ore: ore - blueprint.clayRobotCost * clayRobotsBuilt + oreRobots,
+        ore: ore - blueprint.clayRobotCost + oreRobots,
         clay: clay + clayRobots,
         obs: obs + obsRobots,
         oreRobots,
-        clayRobots: clayRobots + clayRobotsBuilt,
+        clayRobots: clayRobots + 1,
         obsRobots,
         geoRobots,
         geo: geo + geoRobots,
